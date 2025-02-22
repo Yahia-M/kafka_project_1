@@ -1,0 +1,10 @@
+image: gitpod/workspace-full
+
+tasks:
+  - init: |
+      sudo apt-get update
+      sudo apt-get install -y openjdk-17-jdk
+      curl -s https://downloads.apache.org/kafka/3.6.0/kafka_2.13-3.6.0.tgz | tar -xz
+      mv kafka_2.13-3.6.0 /workspace/kafka
+      export PATH=$PATH:/workspace/kafka/bin
+      pip install pymongo kafka-python
