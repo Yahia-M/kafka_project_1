@@ -3,14 +3,14 @@ from pymongo import MongoClient
 import json
 
 # MongoDB Atlas connection
-mongo_uri = "mongodb+srv://<username>:<password>@cluster0.mongodb.net/<dbname>?retryWrites=true&w=majority"
+mongo_uri = "mongodb+srv://dbGDR:dbYahiaUsers@cluster-gdr.yogka.mongodb.net/?retryWrites=true&w=majority&appName=Cluster-GDR"
 client = MongoClient(mongo_uri)
-db = client['<dbname>']
-collection = db['<collectionname>']
+db = client['mongodbVSCodePlaygroundDB']
+collection = db['sales']
 
 # Kafka producer setup
 producer = KafkaProducer(
-    bootstrap_servers='localhost:9092',
+    bootstrap_servers='localhost:9092',  # Use the correct broker address
     value_serializer=lambda v: json.dumps(v).encode('utf-8')
 )
 

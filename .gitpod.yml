@@ -2,9 +2,52 @@ image: gitpod/workspace-full
 
 tasks:
   - init: |
+      echo "Installing dependencies..."
       sudo apt-get update
-      sudo apt-get install -y openjdk-17-jdk
-      curl -s https://downloads.apache.org/kafka/3.6.0/kafka_2.13-3.6.0.tgz | tar -xz
-      mv kafka_2.13-3.6.0 /workspace/kafka
-      export PATH=$PATH:/workspace/kafka/bin
-      pip install pymongo kafka-python
+      sudo apt-get install -y openjdk-17-jdk unzip
+
+      echo "Creating folders..."
+      mkdir -p /workspace/kafka_project_1/kafka
+      mkdir -p /workspace/kafka_project_1/ngrok
+
+      echo "Downloading and extracting Kafka..."
+      curl -s https://downloads.apache.org/kafka/3.7.2/kafka_2.13-3.7.2.tgz  | tar -xz -C /workspace/kafka_project_1
+      mv /workspace/kafka_project_1/kafka_2.13-3.7.2/ /workspace/kafka_project_1/kafka
+      export PATH=$PATH:/workspace/kafka_project_1/kafka/kafka_2.13-3.7.2/bin
+      export PATH=$PATH:/workspace/kafka_project_1/kafka/kafka_2.13-3.7.2
+
+      echo "Uncommenting listeners and advertised.listeners in server.properties..."
+      sed -i 's/^#listeners=/listeners=/' /home/gitpod/kafka/config/server.properties
+      sed -i 's/^#advertised.listeners=PLAINTEXT:\/\/your.host.name:9092/advertised.listeners=PLAINTEXT:\/\/https:\/\/9092-yahiam-kafkaproject1-youh3zwfidc.ws-eu117.gitpod.io/' /home/gitpod/kafka/config/server.properties
+      echo "Installing Python dependencies..."
+      pip3 install pymongo kafka-python
+
+      echo "Installing ngrok..."
+      curl -s https://bin.equinox.io/c/4VmDzA7iaHb/ngrok-stable-linux-amd64.zip -o /workspace/kafka_project_1/ngrok.zip
+      unzip /workspace/kafka_project_1/ngrok.zip -d /workspace/kafka_project_1/ngrok
+      chmod +x /workspace/kafka_project_1/ngrok
+      /workspace/kafka_project_1/ngrok config add-authtoken 1n76FUumd6izNoyPXqq5DFZcCw8_4NDTBxaXbgfGwyEEh6oiF
+      /workspace/kafka_project_1/ngrok authtoken 1n76FUumd6izNoyPXqq5DFZcCw8_4NDTBxaXbgfGwyEEh6oiF  # Replace with your ngrok auth token
+  - command: |
+      echo "Starting Kafka and Zookeeper..."
+      cd /workspace/kafka_project_1/kafka/kafka_2.13-3.7.2/
+      bin/zookeeper-server-start.sh config/zookeeper.properties &
+      sleep 5
+      bin/kafka-server-start.sh config/server.properties &
+      sleep 10
+      echo "Kafka is running!"
+
+      echo "Starting ngrok..."
+      /workspace/kafka_project_1/ngrok/ngrok tcp 9092 --log=stdout > /workspace/kafka_project_1/ngrok/ngrok.log &
+      sleep 5
+      NGROK_URL=$(grep -o "tcp://.*\.ngrok.io:[0-9]*" /workspace/kafka_project_1/ngrok/ngrok.log | tail -n1 | sed 's/tcp:\/\///')
+      echo "Ngrok is running at $NGROK_URL"
+
+      echo "Updating advertised.listeners with ngrok URL..."
+      echo "advertised.listeners=PLAINTEXT://$NGKROK_URL" >> /workspace/kafka_project_1/kafka/kafka_2.13-3.7.2/config/server.properties
+      bin/kafka-server-stop.sh
+      bin/kafka-server-start.sh config/server.properties &
+      sleep 5
+      echo "Kafka is now accessible externally at $NGROK_URL"
+
+      python3 /workspace/kafka_project_1/producer.py
